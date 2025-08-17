@@ -10,25 +10,36 @@ import SwiftData
 
 struct ContentView: View {
     
-    @Environment(\.managedObjectContext) var managedObjectContext
+    @Environment(\.modelContext) private var modelContext
     @Query private var pets : [Pet]
+    
+    @State private var path = [Pet]()
     
     let layout = [
         GridItem(.flexible(minimum: 120)),
         GridItem(.flexible(minimum: 120)),
     ]
     
+    func addPet() {
+        let pet = Pet(name : "Best Friend")
+        modelContext.insert(pet)
+        path = [pet]
+    }
+    
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
               LazyVGrid(columns: layout) {
                  GridRow {
                     ForEach(pets) { pet in
-                        NavigationLink(destination: EmptyView()){
+                        NavigationLink(value : pet){
                             VStack {
                                 if let imageData = pet.photo {
                                     if let image = UIImage(data : imageData) {
                                         Image(uiImage : image)
+                                            .resizable()
+                                            .scaledToFit()
+                                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .circular))
                                     }
                                 }
                                 else {
@@ -63,6 +74,12 @@ struct ContentView: View {
               .padding(.horizontal)
             } //: SCROLLVIEW
             .navigationTitle(pets.isEmpty ? "" : "Paws")
+            .navigationDestination(for: Pet.self, destination: EditPetView.init)
+            .toolbar {
+                ToolbarItem(placement : .topBarTrailing){
+                    Button("Add a New Pet", systemImage : "plus.circle", action : addPet)
+                }
+            }
             .overlay {
                 if pets.isEmpty {
                     CustomContentUnavailableView(
